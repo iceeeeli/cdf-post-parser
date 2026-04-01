@@ -1,0 +1,420 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CDF POST 参数解析工具</title>
+  <style>
+    :root {
+      --bg: #f3efe7;
+      --panel: rgba(255, 252, 247, 0.92);
+      --panel-strong: #fffaf2;
+      --text: #2b2118;
+      --muted: #6f6152;
+      --border: #ddcfbc;
+      --accent: #9d6c31;
+      --accent-strong: #7f541f;
+      --danger: #b43f2c;
+      --shadow: 0 18px 40px rgba(82, 55, 24, 0.12);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(193, 151, 101, 0.22), transparent 30%),
+        linear-gradient(180deg, #f7f2ea 0%, #efe5d7 100%);
+      padding: 24px;
+    }
+
+    .shell {
+      max-width: 1280px;
+      margin: 0 auto;
+      background: var(--panel);
+      border: 1px solid rgba(157, 108, 49, 0.18);
+      border-radius: 24px;
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      backdrop-filter: blur(12px);
+    }
+
+    .hero {
+      padding: 28px 28px 18px;
+      background:
+        linear-gradient(135deg, rgba(157, 108, 49, 0.18), rgba(255, 250, 242, 0)),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0));
+      border-bottom: 1px solid rgba(157, 108, 49, 0.12);
+    }
+
+    h1 {
+      margin: 0 0 8px;
+      font-size: clamp(28px, 4vw, 40px);
+      line-height: 1.1;
+      letter-spacing: 0.02em;
+    }
+
+    .subtitle {
+      margin: 0;
+      color: var(--muted);
+      font-size: 15px;
+      line-height: 1.7;
+    }
+
+    .layout {
+      display: grid;
+      grid-template-columns: 1.05fr 0.95fr;
+      gap: 20px;
+      padding: 20px;
+    }
+
+    .card {
+      background: var(--panel-strong);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 18px;
+    }
+
+    .card h2 {
+      margin: 0 0 12px;
+      font-size: 18px;
+    }
+
+    .hint {
+      margin: 0 0 14px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.6;
+    }
+
+    textarea,
+    pre,
+    input {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      background: #fffdf9;
+      color: var(--text);
+      font: inherit;
+    }
+
+    textarea {
+      min-height: 320px;
+      resize: vertical;
+      padding: 14px 16px;
+      line-height: 1.7;
+    }
+
+    .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 14px;
+    }
+
+    button {
+      appearance: none;
+      border: 0;
+      border-radius: 999px;
+      padding: 11px 18px;
+      font: inherit;
+      cursor: pointer;
+      transition: transform 0.15s ease, opacity 0.15s ease, background 0.15s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+    }
+
+    .primary {
+      background: linear-gradient(135deg, var(--accent), #c48a44);
+      color: #fff;
+    }
+
+    .secondary {
+      background: #efe4d4;
+      color: var(--text);
+    }
+
+    .ghost {
+      background: transparent;
+      border: 1px solid var(--border);
+      color: var(--muted);
+    }
+
+    .status {
+      min-height: 22px;
+      margin-top: 12px;
+      font-size: 14px;
+      color: var(--muted);
+    }
+
+    .status.error {
+      color: var(--danger);
+    }
+
+    .summary {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .summary-item {
+      padding: 12px 14px;
+      background: #fffdf9;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+    }
+
+    .summary-item label {
+      display: block;
+      color: var(--muted);
+      font-size: 12px;
+      margin-bottom: 6px;
+    }
+
+    .summary-item div {
+      word-break: break-word;
+      line-height: 1.5;
+      font-size: 14px;
+    }
+
+    pre {
+      min-height: 420px;
+      margin: 0;
+      padding: 16px;
+      overflow: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      line-height: 1.6;
+      font-family: Consolas, "Courier New", monospace;
+      font-size: 13px;
+    }
+
+    .footer {
+      padding: 0 20px 20px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.7;
+    }
+
+    @media (max-width: 960px) {
+      .layout {
+        grid-template-columns: 1fr;
+      }
+
+      .summary {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <section class="hero">
+      <h1>CDF POST 参数解析工具</h1>
+      <p class="subtitle">
+        直接粘贴整段请求参数，例如 <code>data=...&amp;ext=...</code>，点击“解析”即可查看解码后的 JSON 和关键字段。
+      </p>
+    </section>
+
+    <section class="layout">
+      <section class="card">
+        <h2>输入区域</h2>
+        <p class="hint">
+          支持粘贴完整 query string、仅粘贴 <code>data=...</code>，或者直接粘贴 Base64 内容。
+        </p>
+        <textarea id="input" spellcheck="false" placeholder="把请求参数粘贴到这里"></textarea>
+        <div class="buttons">
+          <button class="primary" id="parseBtn">解析</button>
+          <button class="secondary" id="clearBtn">清空</button>
+          <button class="ghost" id="sampleBtn">填入示例</button>
+        </div>
+        <div id="status" class="status"></div>
+      </section>
+
+      <section class="card">
+        <h2>解析结果</h2>
+        <div class="summary" id="summary"></div>
+        <pre id="output">等待解析结果...</pre>
+        <div class="buttons">
+          <button class="secondary" id="copyBtn">复制结果</button>
+        </div>
+      </section>
+    </section>
+
+    <section class="footer">
+      本页面纯本地运行，不会把内容发送到服务器。若解析失败，通常是因为输入不是完整的 <code>data</code> 参数，或内容被额外转码/截断。
+    </section>
+  </main>
+
+  <script>
+    const sampleValue = 'data=eyJpZGVudGl0aWVzIjp7IiRpZGVudGl0eV9jb29raWVfaWQiOiIxOWQ0MzFkOGE2MDEyYTAtMDYyZTAwYjNjYzA3MDYtMjc2MDRhMzAtMzI5MTYwLTE5ZDQzMWQ4YTYxMTQyMyIsIiRpZGVudGl0eV9hbm9ueW1vdXNfaWQiOiIxOWQ0MzFkOGE2MDEyYTAtMDYyZTAwYjNjYzA3MDYtMjc2MDRhMzAtMzI5MTYwLTE5ZDQzMWQ4YTYxMTQyMyJ9LCJkaXN0aW5jdF9pZCI6IjE5ZDQzMWQ4YTYwMTJhMC0wNjJlMDBiM2NjMDcwNi0yNzYwNGEzMC0zMjkxNjAtMTlkNDMxZDhhNjExNDIzIiwibGliIjp7IiRsaWIiOiJqcyIsIiRsaWJfbWV0aG9kIjoiY29kZSIsIiRsaWJfdmVyc2lvbiI6IjEuMjYuMTEifSwicHJvcGVydGllcyI6eyIkdGltZXpvbmVfb2Zmc2V0IjotNDgwLCIkc2NyZWVuX2hlaWdodCI6ODQ0LCIkc2NyZWVuX3dpZHRoIjozOTAsIiR2aWV3cG9ydF9oZWlnaHQiOjg0NCwiJHZpZXdwb3J0X3dpZHRoIjozOTAsIiRsaWIiOiJqcyIsIiRsaWJfdmVyc2lvbiI6IjEuMjYuMTEiLCIkbGF0ZXN0X3RyYWZmaWNfc291cmNlX3R5cGUiOiLnm7TmjqXmtYHph48iLCIkbGF0ZXN0X3NlYXJjaF9rZXl3b3JkIjoi5pyq5Y%2BW5Yiw5YC8X%2BebtOaOpeaJk%2BW8gCIsIiRsYXRlc3RfcmVmZXJyZXIiOiIiLCJ3ZWJfYnJhbmRfaWQiOiIyNDgxNjciLCJ3ZWJfY2hhbm5lbCI6Ikg1X0JyYW5kIiwicGxhdGZvcm1fdHlwZSI6IuWklumDqOa1j%2BiniOWZqCIsInJlZmVycmVyIjoiW%2BWoh%2BWFsF0tW%2BiHquWumuS5ieWTgeeJjOmmhummlumhtV0iLCJzb3VyY2VfbW9kdWxlX2xvY2F0aW9uIjoiIiwic291cmNlX21vZHVsZV9uYW1lIjoiIiwic291cmNlX21vZHVsZV9jb250ZW50IjoiIiwidXJsIjoiL2JyYW5kLXByb3RhbD9wcmU9MCIsIm1vZHVsZV9uYW1lIjoiW%2BmmlumhteWIhuexu%2Bezu%2BWIl10tWzFdIiwibW9kdWxlX2NvbnRlbnQiOiJbMV0tW%2BmmmeawtF0iLCJjdXJyZW50X3BhZ2VfbmFtZV9oNSI6IlvlqIflhbBdLVvoh6rlrprkuYnlk4HniYzppobpppbpobVdIiwicG9zaXRpb25fbnVtYmVyIjoxLCJtYXRlcmlhbF90eXBlIjoi5ZOB54mM6aaG5YaF5YiG57G76aG1IiwibWF0ZXJpYWxfbmFtZSI6IlvpppnmsLRd5YiG57G76aG1IiwibWF0ZXJpYWxfaWQiOiIzNTM1ODkiLCJwaWN0dXJlX3VybCI6Imh0dHBzOi8vY3VzdG9tYnJhbmQtaW1hZ2VzLmNkZmhubWFsbC5jb20vYnJhbmRzLzAzMDAwMS8yNjY0M2NjYjdkMTA0M2U2YjM4YTU1NDA3N2ZjZDMzZi01Mjh4NTI4X0FBLmpwZyIsIm1hdGVyaWFsX3VybCI6Ii9wcm9kdWN0LWxpc3Q%2FY2F0ZWdvcnlJZD0zNTM1ODkiLCJtYXRlcmlhbF9lbGVtZW50Ijoi5LiA5byg5Zu%2B54mHK%2BS4gOihjOaWh%2BWtlyIsIiRpc19maXJzdF9kYXkiOmZhbHNlLCIkdXJsIjoiaHR0cHM6Ly9jdXN0b20tZ3VlcmxhaW4tY2RmLWg1LXN0YWdpbmcuY2hhdGxhYnMubmV0LyMvP3ByZT0wIiwiJHRpdGxlIjoiR1VFUkxBSU4g5aiH5YWwIn0sImFub255bW91c19pZCI6IjE5ZDQzMWQ4YTYwMTJhMC0wNjJlMDBiM2NjMDcwNi0yNzYwNGEzMC0zMjkxNjAtMTlkNDMxZDhhNjExNDIzIiwidHlwZSI6InRyYWNrIiwiZXZlbnQiOiJIbm1zX1Jlc291cmNlRXhwb3N1cmUiLCJ0aW1lIjoxNzc1MDI4MjE5MDc5LCJfdHJhY2tfaWQiOjk0NjY2OTA3OSwiX2ZsdXNoX3RpbWUiOjE3NzUwMjgyMTkwNzl9&ext=crc%3D1611812258';
+
+    const inputEl = document.getElementById('input');
+    const outputEl = document.getElementById('output');
+    const summaryEl = document.getElementById('summary');
+    const statusEl = document.getElementById('status');
+    const parseBtn = document.getElementById('parseBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const sampleBtn = document.getElementById('sampleBtn');
+    const copyBtn = document.getElementById('copyBtn');
+
+    function setStatus(message, isError) {
+      statusEl.textContent = message || '';
+      statusEl.className = isError ? 'status error' : 'status';
+    }
+
+    function escapeHtml(value) {
+      return String(value)
+        .replaceAll('&', '&amp;')
+        .replaceAll('<', '&lt;')
+        .replaceAll('>', '&gt;')
+        .replaceAll('"', '&quot;')
+        .replaceAll("'", '&#39;');
+    }
+
+    function extractDataValue(rawInput) {
+      const input = rawInput.trim();
+      if (!input) {
+        throw new Error('请输入要解析的内容。');
+      }
+
+      if (input.startsWith('data=')) {
+        const withoutPrefix = input.slice(5);
+        const ampIndex = withoutPrefix.indexOf('&');
+        return ampIndex >= 0 ? withoutPrefix.slice(0, ampIndex) : withoutPrefix;
+      }
+
+      if (input.includes('data=')) {
+        const match = input.match(/(?:^|[?&])data=([^&]+)/);
+        if (match) {
+          return match[1];
+        }
+      }
+
+      return input;
+    }
+
+    function decodePercentPreservingPlus(value) {
+      try {
+        return decodeURIComponent(value);
+      } catch (error) {
+        return value;
+      }
+    }
+
+    function normalizeBase64(value) {
+      let normalized = value.replace(/\s+/g, '').replace(/-/g, '+').replace(/_/g, '/');
+      const mod = normalized.length % 4;
+      if (mod > 0) {
+        normalized += '='.repeat(4 - mod);
+      }
+      return normalized;
+    }
+
+    function decodeBase64Utf8(base64Value) {
+      const binary = atob(normalizeBase64(base64Value));
+      const bytes = Uint8Array.from(binary, char => char.charCodeAt(0));
+      return new TextDecoder('utf-8').decode(bytes);
+    }
+
+    function formatTime(ms) {
+      if (typeof ms !== 'number') {
+        return '-';
+      }
+      const date = new Date(ms);
+      if (Number.isNaN(date.getTime())) {
+        return String(ms);
+      }
+      return new Intl.DateTimeFormat('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+      }).format(date);
+    }
+
+    function renderSummary(parsed) {
+      const properties = parsed.properties || {};
+      const items = [
+        ['事件名', parsed.event || '-'],
+        ['类型', parsed.type || '-'],
+        ['时间', formatTime(parsed.time)],
+        ['页面', properties.current_page_name_h5 || properties.$title || '-'],
+        ['模块', properties.module_name || '-'],
+        ['模块内容', properties.module_content || '-'],
+        ['素材 ID', properties.material_id || '-'],
+        ['素材名称', properties.material_name || '-'],
+        ['跳转链接', properties.material_url || '-'],
+        ['来源类型', properties.$latest_traffic_source_type || '-'],
+        ['平台', properties.platform_type || '-'],
+        ['渠道', properties.web_channel || '-']
+      ];
+
+      summaryEl.innerHTML = items.map(([label, value]) => (
+        '<div class="summary-item"><label>' +
+        escapeHtml(label) +
+        '</label><div>' +
+        escapeHtml(value) +
+        '</div></div>'
+      )).join('');
+    }
+
+    function parseInput() {
+      try {
+        const dataValue = extractDataValue(inputEl.value);
+        const urlDecoded = decodePercentPreservingPlus(dataValue);
+        const jsonText = decodeBase64Utf8(urlDecoded);
+        const parsed = JSON.parse(jsonText);
+        outputEl.textContent = JSON.stringify(parsed, null, 2);
+        renderSummary(parsed);
+        setStatus('解析成功。');
+      } catch (error) {
+        summaryEl.innerHTML = '';
+        outputEl.textContent = '解析失败：' + error.message;
+        setStatus('解析失败，请检查输入内容是否完整。', true);
+      }
+    }
+
+    parseBtn.addEventListener('click', parseInput);
+
+    clearBtn.addEventListener('click', () => {
+      inputEl.value = '';
+      outputEl.textContent = '等待解析结果...';
+      summaryEl.innerHTML = '';
+      setStatus('');
+      inputEl.focus();
+    });
+
+    sampleBtn.addEventListener('click', () => {
+      inputEl.value = sampleValue;
+      setStatus('已填入示例，可直接点击解析。');
+    });
+
+    copyBtn.addEventListener('click', async () => {
+      const text = outputEl.textContent;
+      if (!text || text === '等待解析结果...') {
+        setStatus('当前没有可复制的解析结果。', true);
+        return;
+      }
+
+      try {
+        await navigator.clipboard.writeText(text);
+        setStatus('解析结果已复制。');
+      } catch (error) {
+        setStatus('复制失败，请手动选中文本复制。', true);
+      }
+    });
+  </script>
+</body>
+</html>
