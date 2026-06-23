@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CHROMA · 主色实验室</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,500;9..144,600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #14110f;
+      --panel: #1d1916;
+      --panel-2: #251f1b;
+      --ink: #f2ece3;
+      --muted: #8c8178;
+      --line: #342b25;
+      --accent: #e8a13c;
+      --accent-soft: rgba(232, 161, 60, .14);
+      --display: "Fraunces", Georgia, serif;
+      --mono: "JetBrains Mono", ui-monospace, monospace;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; }
+    body {
+      font-family: var(--mono);
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      padding: 64px 24px 96px;
+      position: relative;
+      overflow-x: hidden;
+    }
+    /* 颗粒质感 + 顶部光晕 */
+    body::before {
+      content: "";
+      position: fixed; inset: 0;
+      background:
+        radial-gradient(900px 500px at 50% -10%, rgba(232,161,60,.10), transparent 60%);
+      pointer-events: none; z-index: 0;
+    }
+    body::after {
+      content: "";
+      position: fixed; inset: 0;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+      opacity: .035; pointer-events: none; z-index: 0; mix-blend-mode: screen;
+    }
+    .wrap { max-width: 720px; margin: 0 auto; position: relative; z-index: 1; }
+
+    /* 标题区 */
+    .masthead { margin-bottom: 40px; }
+    .eyebrow {
+      font-size: 11px; letter-spacing: .42em; text-transform: uppercase;
+      color: var(--accent); margin: 0 0 14px;
+      animation: rise .7s cubic-bezier(.2,.7,.3,1) both;
+    }
+    h1 {
+      font-family: var(--display);
+      font-weight: 300; font-style: italic;
+      font-size: clamp(40px, 9vw, 78px);
+      line-height: .94; margin: 0;
+      letter-spacing: -.02em;
+      animation: rise .7s cubic-bezier(.2,.7,.3,1) .06s both;
+    }
+    h1 b { font-weight: 600; font-style: normal; }
+    .lede {
+      color: var(--muted); font-size: 13px; margin: 18px 0 0; max-width: 46ch;
+      line-height: 1.7;
+      animation: rise .7s cubic-bezier(.2,.7,.3,1) .12s both;
+    }
+
+    /* 上传区 */
+    .upload {
+      display: block; margin-top: 36px;
+      border: 1px solid var(--line);
+      border-radius: 4px;
+      padding: 44px 28px; text-align: center; cursor: pointer;
+      background: var(--panel);
+      position: relative; overflow: hidden;
+      transition: border-color .25s, background .25s, transform .25s;
+      animation: rise .7s cubic-bezier(.2,.7,.3,1) .18s both;
+    }
+    .upload::after {
+      content: "";
+      position: absolute; inset: 0;
+      background: linear-gradient(120deg, transparent 30%, var(--accent-soft) 50%, transparent 70%);
+      transform: translateX(-100%); transition: transform .6s;
+    }
+    .upload:hover { border-color: var(--accent); background: var(--panel-2); transform: translateY(-2px); }
+    .upload:hover::after { transform: translateX(100%); }
+    .upload .ico { font-size: 26px; display: block; margin-bottom: 12px; filter: grayscale(.2); }
+    .upload .t1 { font-family: var(--display); font-size: 19px; font-style: italic; }
+    .upload .t2 { color: var(--muted); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; margin-top: 8px; }
+    .upload input { display: none; }
+
+    /* 控制栏 */
+    .controls {
+      display: none;
+      gap: 14px; margin-top: 32px; flex-wrap: wrap;
+      animation: rise .5s ease both;
+    }
+    .field {
+      flex: 1; min-width: 200px;
+      background: var(--panel); border: 1px solid var(--line);
+      border-radius: 4px; padding: 12px 14px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .field label {
+      font-size: 10px; letter-spacing: .2em; text-transform: uppercase;
+      color: var(--accent); white-space: nowrap;
+    }
+    .field select {
+      flex: 1; appearance: none; -webkit-appearance: none;
+      background: transparent; border: none; color: var(--ink);
+      font-family: var(--mono); font-size: 14px; cursor: pointer; outline: none;
+      background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%),
+                        linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+      background-position: right 6px center, right 1px center;
+      background-size: 5px 5px, 5px 5px; background-repeat: no-repeat;
+      padding-right: 18px;
+    }
+    .field select option { background: var(--panel-2); color: var(--ink); }
+    .field input[type=range] {
+      flex: 1; -webkit-appearance: none; appearance: none;
+      height: 3px; border-radius: 2px; background: var(--line); outline: none; cursor: pointer;
+    }
+    .field input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none; appearance: none;
+      width: 15px; height: 15px; border-radius: 50%;
+      background: var(--accent); border: 2px solid var(--bg);
+      box-shadow: 0 0 0 1px var(--accent);
+    }
+    .field input[type=range]::-moz-range-thumb {
+      width: 15px; height: 15px; border: 2px solid var(--bg); border-radius: 50%;
+      background: var(--accent);
+    }
+    .field output {
+      font-size: 12px; color: var(--muted); min-width: 42px; text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    .field output.clamped { color: var(--accent); }
+
+    /* 预览画布 */
+    .stage { margin-top: 24px; position: relative; }
+    #previewCanvas {
+      display: none; max-width: 100%; height: auto;
+      border-radius: 4px;
+      border: 1px solid var(--line);
+      box-shadow: 0 24px 60px -24px rgba(0,0,0,.7);
+      animation: fade .5s ease both;
+    }
+
+    /* 导出按钮 */
+    .actionbar { margin-top: 28px; }
+    #exportBtn {
+      display: none;
+      width: 100%; padding: 17px;
+      font-family: var(--mono); font-size: 12px; font-weight: 700;
+      letter-spacing: .26em; text-transform: uppercase;
+      color: var(--bg); background: var(--accent); border: none; border-radius: 4px;
+      cursor: pointer; position: relative; overflow: hidden;
+      transition: transform .2s, box-shadow .2s, background .2s;
+    }
+    #exportBtn:hover { transform: translateY(-2px); box-shadow: 0 12px 30px -8px var(--accent); background: #f4b450; }
+    #exportBtn:active { transform: translateY(0); }
+
+    @keyframes rise { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: none; } }
+    @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="masthead">
+      <p class="eyebrow">Color Extraction Lab</p>
+      <h1><b>Chroma</b><br/>主色实验室</h1>
+      <p class="lede">上传一张图片，自动聚类提取占比最高的三种主色，自由编排形状与版式，导出为成片。</p>
+    </header>
+
+    <label class="upload" id="dropzone">
+      <span class="ico">◳</span>
+      <span class="t1">拖入或点击上传图片</span>
+      <span class="t2">PNG · JPG · WEBP</span>
+      <input type="file" id="file" accept="image/*" />
+    </label>
+
+    <div class="controls" id="controls">
+      <div class="field">
+        <label>模式</label>
+        <select id="modeSel">
+          <option value="append">拼接</option>
+          <option value="overlay">叠加</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>形状</label>
+        <select id="shapeSel">
+          <option value="circle">● 圆形</option>
+          <option value="square">■ 方形</option>
+          <option value="rounded">▢ 圆角方</option>
+          <option value="triangle">▲ 三角形</option>
+          <option value="hexagon">⬡ 六边形</option>
+          <option value="star">★ 星形</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>位置</label>
+        <select id="posSel">
+          <option value="bottom">底部</option>
+          <option value="top">顶部</option>
+          <option value="left">左侧</option>
+          <option value="right">右侧</option>
+          <option value="center">居中</option>
+        </select>
+      </div>
+      <div class="field" id="glassField">
+        <label>磨砂区域</label>
+        <select id="glassSel">
+          <option value="auto">自适应</option>
+          <option value="full">全幅</option>
+        </select>
+      </div>
+      <div class="field" style="flex-basis:100%;">
+        <label>大小</label>
+        <input type="range" id="sizeSel" min="0" max="100" value="38" />
+        <output id="sizeVal">38</output>
+      </div>
+      <div class="field" style="flex-basis:100%;">
+        <label>间距</label>
+        <input type="range" id="spaceSel" min="0" max="100" value="42" />
+        <output id="spaceVal">42</output>
+      </div>
+    </div>
+
+    <div class="stage">
+      <canvas id="previewCanvas"></canvas>
+    </div>
+
+    <div class="actionbar">
+      <button id="exportBtn">↓ 导出成片</button>
+    </div>
+  </div>
+
+  <canvas id="canvas" style="display:none"></canvas>
+
+  <script>
+    const fileInput = document.getElementById('file');
+    const dropzone = document.getElementById('dropzone');
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
+    const previewCanvas = document.getElementById('previewCanvas');
+    const controls = document.getElementById('controls');
+    const modeSel = document.getElementById('modeSel');
+    const shapeSel = document.getElementById('shapeSel');
+    const posSel = document.getElementById('posSel');
+    const glassSel = document.getElementById('glassSel');
+    const glassField = document.getElementById('glassField');
+    const sizeSel = document.getElementById('sizeSel');
+    const sizeVal = document.getElementById('sizeVal');
+    const spaceSel = document.getElementById('spaceSel');
+    const spaceVal = document.getElementById('spaceVal');
+    const exportBtn = document.getElementById('exportBtn');
+
+    let lastImg = null;     // 保存当前图片元素，供导出用
+    let lastColors = [];    // 保存当前主色
+
+    fileInput.addEventListener('change', e => handleFile(e.target.files[0]));
+    modeSel.addEventListener('change', renderPreview);
+    shapeSel.addEventListener('change', renderPreview);
+    posSel.addEventListener('change', renderPreview);
+    glassSel.addEventListener('change', renderPreview);
+    sizeSel.addEventListener('input', renderPreview);
+    spaceSel.addEventListener('input', renderPreview);
+
+    // 支持拖拽
+    dropzone.addEventListener('dragover', e => { e.preventDefault(); });
+    dropzone.addEventListener('drop', e => {
+      e.preventDefault();
+      if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+    });
+
+    function handleFile(file) {
+      if (!file || !file.type.startsWith('image/')) return;
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => {
+        lastImg = img;
+        lastColors = getTopColors(img, 3);
+        const has = lastColors.length > 0;
+        controls.style.display = has ? 'flex' : 'none';
+        previewCanvas.style.display = has ? 'block' : 'none';
+        exportBtn.style.display = has ? 'inline-block' : 'none';
+        renderPreview();
+      };
+      img.src = url;
+    }
+
+    // 核心：k-means++ 聚类提取主色
+    function getTopColors(img, count) {
+      // 缩放到最大 200px 边，降低计算量（不影响主色判断）
+      const scale = Math.min(1, 200 / Math.max(img.width, img.height));
+      const w = Math.max(1, Math.round(img.width * scale));
+      const h = Math.max(1, Math.round(img.height * scale));
+      canvas.width = w;
+      canvas.height = h;
+      ctx.drawImage(img, 0, 0, w, h);
+
+      const { data } = ctx.getImageData(0, 0, w, h);
+
+      // 1) 收集像素（跳过透明），转到 Lab 空间做聚类——更贴近人眼感知
+      const pixels = [];   // 每项: [L, a, b, r, g, bch]（前 3 维聚类，后 3 维记录原始 RGB）
+      for (let i = 0; i < data.length; i += 4) {
+        if (data[i + 3] < 125) continue;
+        const r = data[i], g = data[i + 1], b = data[i + 2];
+        const lab = rgb2lab(r, g, b);
+        pixels.push([lab[0], lab[1], lab[2], r, g, b]);
+      }
+      if (pixels.length === 0) return [];
+
+      const k = Math.min(count, pixels.length);
+      const clusters = kmeans(pixels, k, 12); // 最多迭代 12 次
+
+      const total = pixels.length;
+      return clusters
+        .filter(c => c.size > 0)
+        .sort((a, b) => b.size - a.size)
+        .slice(0, count)
+        .map(c => ({
+          r: Math.round(c.r),
+          g: Math.round(c.g),
+          b: Math.round(c.b),
+          pct: ((c.size / total) * 100).toFixed(1),
+        }));
+    }
+
+    // ---- k-means（含 k-means++ 初始化），在 Lab 空间计算距离 ----
+    function kmeans(pixels, k, maxIter) {
+      const n = pixels.length;
+      // k-means++ 选初始中心（用步长采样代替随机，结果稳定且无需随机数）
+      const centers = [pixels[0].slice(0, 3)];
+      while (centers.length < k) {
+        let best = null, bestDist = -1;
+        // 每隔若干像素采样一个候选，挑离已有中心最远的点
+        const stepN = Math.max(1, Math.floor(n / 4000));
+        for (let i = 0; i < n; i += stepN) {
+          const p = pixels[i];
+          let dmin = Infinity;
+          for (const c of centers) {
+            const d = (p[0]-c[0])**2 + (p[1]-c[1])**2 + (p[2]-c[2])**2;
+            if (d < dmin) dmin = d;
+          }
+          if (dmin > bestDist) { bestDist = dmin; best = p; }
+        }
+        centers.push(best.slice(0, 3));
+      }
+
+      let assign = new Array(n).fill(0);
+      for (let iter = 0; iter < maxIter; iter++) {
+        let changed = false;
+        // 分配
+        for (let i = 0; i < n; i++) {
+          const p = pixels[i];
+          let bi = 0, bd = Infinity;
+          for (let c = 0; c < k; c++) {
+            const ce = centers[c];
+            const d = (p[0]-ce[0])**2 + (p[1]-ce[1])**2 + (p[2]-ce[2])**2;
+            if (d < bd) { bd = d; bi = c; }
+          }
+          if (assign[i] !== bi) { assign[i] = bi; changed = true; }
+        }
+        // 更新中心（Lab 维度用于下一轮聚类，RGB 维度用于最终展示色）
+        const acc = Array.from({ length: k }, () => [0,0,0,0,0,0,0]);
+        for (let i = 0; i < n; i++) {
+          const p = pixels[i], a = acc[assign[i]];
+          a[0]+=p[0]; a[1]+=p[1]; a[2]+=p[2]; a[3]+=p[3]; a[4]+=p[4]; a[5]+=p[5]; a[6]++;
+        }
+        for (let c = 0; c < k; c++) {
+          if (acc[c][6] > 0) {
+            centers[c] = [acc[c][0]/acc[c][6], acc[c][1]/acc[c][6], acc[c][2]/acc[c][6]];
+          }
+        }
+        if (!changed && iter > 0) break;
+      }
+
+      // 汇总每类的 RGB 均值与大小
+      const out = Array.from({ length: k }, () => ({ r:0, g:0, b:0, size:0 }));
+      for (let i = 0; i < n; i++) {
+        const o = out[assign[i]], p = pixels[i];
+        o.r += p[3]; o.g += p[4]; o.b += p[5]; o.size++;
+      }
+      for (const o of out) if (o.size > 0) { o.r/=o.size; o.g/=o.size; o.b/=o.size; }
+      return out;
+    }
+
+    // ---- sRGB -> CIE Lab ----
+    function rgb2lab(r, g, b) {
+      r/=255; g/=255; b/=255;
+      r = r > 0.04045 ? ((r+0.055)/1.055)**2.4 : r/12.92;
+      g = g > 0.04045 ? ((g+0.055)/1.055)**2.4 : g/12.92;
+      b = b > 0.04045 ? ((b+0.055)/1.055)**2.4 : b/12.92;
+      let x = (r*0.4124 + g*0.3576 + b*0.1805) / 0.95047;
+      let y = (r*0.2126 + g*0.7152 + b*0.0722) / 1.00000;
+      let z = (r*0.0193 + g*0.1192 + b*0.9505) / 1.08883;
+      const f = t => t > 0.008856 ? Math.cbrt(t) : (7.787*t + 16/116);
+      x=f(x); y=f(y); z=f(z);
+      return [116*y - 16, 500*(x-y), 200*(y-z)];
+    }
+
+    const hexOf = c => '#' + [c.r, c.g, c.b]
+      .map(v => v.toString(16).padStart(2, '0')).join('').toUpperCase();
+
+    // 在 (cx,cy) 处按指定形状绘制，r 为半径/半边长
+    function drawShape(o, shape, cx, cy, r, fill) {
+      o.save();
+      o.shadowColor = 'rgba(0,0,0,0.28)';
+      o.shadowBlur = r * 0.35;
+      o.shadowOffsetY = r * 0.12;
+      o.fillStyle = fill;
+      o.lineWidth = Math.max(1, r * 0.04);
+      o.strokeStyle = 'rgba(255,255,255,0.55)';
+      o.beginPath();
+      if (shape === 'circle') {
+        o.arc(cx, cy, r, 0, Math.PI * 2);
+      } else if (shape === 'square') {
+        o.rect(cx - r, cy - r, 2 * r, 2 * r);
+      } else if (shape === 'rounded') {
+        o.roundRect(cx - r, cy - r, 2 * r, 2 * r, r * 0.3);
+      } else if (shape === 'triangle') {
+        o.moveTo(cx, cy - r);
+        o.lineTo(cx + r * 0.866, cy + r * 0.5);
+        o.lineTo(cx - r * 0.866, cy + r * 0.5);
+        o.closePath();
+      } else if (shape === 'hexagon') {
+        for (let i = 0; i < 6; i++) {
+          const a = Math.PI / 6 + i * Math.PI / 3;
+          const x = cx + r * Math.cos(a), y = cy + r * Math.sin(a);
+          i ? o.lineTo(x, y) : o.moveTo(x, y);
+        }
+        o.closePath();
+      } else if (shape === 'star') {
+        for (let i = 0; i < 10; i++) {
+          const rr = i % 2 ? r * 0.45 : r;
+          const a = -Math.PI / 2 + i * Math.PI / 5;
+          const x = cx + rr * Math.cos(a), y = cy + rr * Math.sin(a);
+          i ? o.lineTo(x, y) : o.moveTo(x, y);
+        }
+        o.closePath();
+      }
+      o.fill();
+      o.shadowColor = 'transparent'; // 描边不要阴影
+      o.stroke();
+      o.restore();
+    }
+
+    // 磨砂玻璃面板：模糊重绘底图 + 半透明白 + 细描边
+    function drawGlass(o, x, y, w, h, radius, blur) {
+      o.save();
+      o.beginPath();
+      o.roundRect(x, y, w, h, radius);
+      o.clip();
+      // 把整张图模糊后画进裁剪区，形成毛玻璃透视
+      o.filter = `blur(${Math.max(2, blur)}px)`;
+      o.drawImage(lastImg, 0, 0, lastImg.naturalWidth, lastImg.naturalHeight);
+      o.filter = 'none';
+      // 提亮 + 轻微白雾
+      o.fillStyle = 'rgba(255,255,255,0.18)';
+      o.fillRect(x, y, w, h);
+      o.restore();
+      // 玻璃边缘高光
+      o.save();
+      o.beginPath();
+      o.roundRect(x, y, w, h, radius);
+      o.lineWidth = Math.max(1, w * 0.002);
+      o.strokeStyle = 'rgba(255,255,255,0.45)';
+      o.stroke();
+      o.restore();
+    }
+
+    // 把「原图 + 配色形状」合成到 target 画布（全分辨率，预览与导出共用）
+    function composeTo(target) {
+      const iw = lastImg.naturalWidth, ih = lastImg.naturalHeight;
+      const n = lastColors.length;
+      const shape = shapeSel.value, pos = posSel.value, mode = modeSel.value;
+      const horizontal = pos === 'bottom' || pos === 'top' || pos === 'center';
+      // 居中始终压在图片上；其余位置由模式决定
+      const onImage = mode === 'overlay' || pos === 'center';
+      const o = target.getContext('2d');
+      const base = Math.min(iw, ih);
+
+      // 大小滑块 → 形状半径
+      const sizeFactor = 0.035 + (sizeSel.value / 100) * (0.11 - 0.035);
+      const r = base * sizeFactor;
+      const edge = base * 0.035;          // 磨砂区/形状离图片边缘的间距
+      const padX = r * 0.85, padY = r * 0.85;
+
+      // 间距滑块 → 中心间距（半径倍数），并自动夹取防出界
+      const factor = 2.2 + (spaceSel.value / 100) * (7 - 2.2);
+      let step = r * factor;
+      const axisLen = horizontal ? iw : ih;
+      const maxStep = n > 1 ? (axisLen - 2 * r - 2 * edge) / (n - 1) : step;
+      const clamped = step > maxStep;
+      if (clamped) step = Math.max(r * 2, maxStep);
+
+      if (target === previewCanvas) {
+        spaceVal.textContent = clamped ? '已到边' : spaceSel.value;
+        spaceVal.classList.toggle('clamped', clamped);
+        sizeVal.textContent = sizeSel.value;
+        glassField.style.opacity = onImage ? '1' : '.4'; // 磨砂区仅叠加/居中时生效
+      }
+
+      const coords = (mid) =>
+        Array.from({ length: n }, (_, i) => mid + (i - (n - 1) / 2) * step);
+
+      if (onImage) {
+        // 直接压在原图上，并垫磨砂玻璃面板
+        target.width = iw;
+        target.height = ih;
+        o.drawImage(lastImg, 0, 0, iw, ih);
+
+        const pts = [];
+        if (horizontal) {
+          let cy;
+          if (pos === 'center') cy = ih / 2;
+          else if (pos === 'bottom') cy = ih - (edge + padY + r);
+          else cy = edge + padY + r; // top
+          coords(iw / 2).forEach(cx => pts.push({ cx, cy }));
+        } else {
+          const cx = pos === 'left' ? edge + padX + r : iw - (edge + padX + r);
+          coords(ih / 2).forEach(cy => pts.push({ cx, cy }));
+        }
+
+        // 磨砂面板：自适应包裹 / 全幅；与边缘保持 edge 间距
+        const full = glassSel.value === 'full';
+        const xs = pts.map(p => p.cx), ys = pts.map(p => p.cy);
+        let px, py, pw, ph;
+        if (horizontal) {
+          py = Math.min(...ys) - r - padY;
+          ph = (Math.max(...ys) - Math.min(...ys)) + 2 * (r + padY);
+          if (full) { px = edge; pw = iw - 2 * edge; }
+          else {
+            px = Math.max(edge, Math.min(...xs) - r - padX);
+            const right = Math.min(iw - edge, Math.max(...xs) + r + padX);
+            pw = right - px;
+          }
+        } else {
+          px = Math.min(...xs) - r - padX;
+          pw = (Math.max(...xs) - Math.min(...xs)) + 2 * (r + padX);
+          if (full) { py = edge; ph = ih - 2 * edge; }
+          else {
+            py = Math.max(edge, Math.min(...ys) - r - padY);
+            const bottom = Math.min(ih - edge, Math.max(...ys) + r + padY);
+            ph = bottom - py;
+          }
+        }
+        drawGlass(o, px, py, pw, ph, Math.min(pw, ph) * 0.28, r * 0.5);
+
+        pts.forEach((p, i) => {
+          const c = lastColors[i];
+          drawShape(o, shape, p.cx, p.cy, r, `rgb(${c.r},${c.g},${c.b})`);
+        });
+        return;
+      }
+
+      // 拼接：扩展画布，在白底色条上排列形状
+      if (horizontal) {
+        const barH = 2 * r + 2 * (r * 0.9);
+        target.width = iw;
+        target.height = ih + barH;
+        const imgY = pos === 'bottom' ? 0 : barH;
+        const barY = pos === 'bottom' ? ih : 0;
+
+        o.fillStyle = '#fff';
+        o.fillRect(0, 0, target.width, target.height);
+        o.drawImage(lastImg, 0, imgY, iw, ih);
+
+        const cy = barY + barH / 2;
+        coords(iw / 2).forEach((cx, i) => {
+          const c = lastColors[i];
+          drawShape(o, shape, cx, cy, r, `rgb(${c.r},${c.g},${c.b})`);
+        });
+      } else {
+        const barW = 2 * r + 2 * (r * 0.9);
+        target.width = iw + barW;
+        target.height = ih;
+        const imgX = pos === 'left' ? barW : 0;
+        const barX = pos === 'left' ? 0 : iw;
+
+        o.fillStyle = '#fff';
+        o.fillRect(0, 0, target.width, target.height);
+        o.drawImage(lastImg, imgX, 0, iw, ih);
+
+        const cx = barX + barW / 2;
+        coords(ih / 2).forEach((cy, i) => {
+          const c = lastColors[i];
+          drawShape(o, shape, cx, cy, r, `rgb(${c.r},${c.g},${c.b})`);
+        });
+      }
+    }
+
+    function renderPreview() {
+      if (!lastImg || !lastColors.length) return;
+      composeTo(previewCanvas);
+    }
+
+    // 导出：用同一套合成逻辑输出全分辨率 PNG
+    exportBtn.addEventListener('click', () => {
+      if (!lastImg || !lastColors.length) return;
+      const out = document.createElement('canvas');
+      composeTo(out);
+      out.toBlob(blob => {
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'palette.png';
+        a.click();
+        URL.revokeObjectURL(a.href);
+      }, 'image/png');
+    });
+  </script>
+</body>
+</html>
